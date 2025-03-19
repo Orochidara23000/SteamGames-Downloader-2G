@@ -30,7 +30,7 @@ def main():
     
     # Create and launch the UI
     app = create_advanced_ui()
-    app.launch()
+    app.launch(share=True)
 
 if __name__ == "__main__":
     main()
