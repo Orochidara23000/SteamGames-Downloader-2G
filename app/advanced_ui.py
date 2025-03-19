@@ -81,7 +81,8 @@ def create_advanced_ui():
                 download_btn = gr.Button("Start Download")
                 
                 with gr.Row():
-                    download_progress = gr.Progress(label="Download Progress")
+                    gr.Markdown("Download Progress:")
+                    download_progress = gr.Slider(minimum=0, maximum=100, value=0, step=1)
                     download_status = gr.Textbox(label="Status", value="Ready")
                 
                 active_downloads_table = gr.Dataframe(
