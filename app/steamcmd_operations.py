@@ -11,15 +11,47 @@ STEAMCMD_DIR = os.path.expanduser("~/steamcmd")
 GAMES_DIR = os.path.expanduser("~/steam_games")
 STEAMCMD_URL = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz"
 
-# Game storage paths
-def get_game_path(app_id):
-    """Get the installation path for a specific game"""
-    return os.path.join(GAMES_DIR, f"app_{app_id}")
-
 def ensure_directories():
     """Ensure all needed directories exist"""
     for directory in [STEAMCMD_DIR, GAMES_DIR]:
         os.makedirs(directory, exist_ok=True)
+    logging.info(f"Required directories verified: {STEAMCMD_DIR}, {GAMES_DIR}")
+
+def check_steamcmd():
+    """Verify SteamCMD installation status"""
+    if os.path.exists(os.path.join(STEAMCMD_DIR, "steamcmd.sh")):
+        logging.info("SteamCMD installation verified")
+        return True
+    else:
+        logging.warning("SteamCMD not found")
+        return False
+
+def install_steamcmd():
+    """Install SteamCMD (fallback action)"""
+    if not os.path.exists(STEAMCMD_DIR):
+        os.makedirs(STEAMCMD_DIR)
+    # Download and extract
+    logging.info("Installing SteamCMD...")
+    try:
+        subprocess.run([
+            "wget", STEAMCMD_URL, 
+            "-P", STEAMCMD_DIR
+        ], check=True)
+        subprocess.run([
+            "tar", "-xvzf", os.path.join(STEAMCMD_DIR, "steamcmd_linux.tar.gz"),
+            "-C", STEAMCMD_DIR
+        ], check=True)
+        logging.info("SteamCMD installed successfully")
+        return "SteamCMD installed successfully"
+    except subprocess.CalledProcessError as e:
+        error_msg = f"Installation failed: {str(e)}"
+        logging.error(error_msg)
+        return error_msg
+
+# Game storage paths
+def get_game_path(app_id):
+    """Get the installation path for a specific game"""
+    return os.path.join(GAMES_DIR, f"app_{app_id}")
 
 def get_game_info(app_id):
     """Get information about a Steam game"""
@@ -48,7 +80,8 @@ def get_game_info(app_id):
                 "app_id": app_id
             }
         return {"name": f"Unknown Game ({app_id})", "app_id": app_id}
-    except:
+    except Exception as e:
+        logging.error(f"Failed to get game info: {str(e)}")
         return {"name": f"Unknown Game ({app_id})", "app_id": app_id}
 
 def download_game(app_id, username="anonymous", password="", install_dir=None):
