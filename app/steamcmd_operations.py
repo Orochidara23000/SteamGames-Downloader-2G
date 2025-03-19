@@ -5,6 +5,8 @@ import re
 import time
 import shutil
 from pathlib import Path
+import urllib.request
+import tarfile
 
 # Configuration
 STEAMCMD_DIR = os.path.expanduser("~/steamcmd")
@@ -27,23 +29,33 @@ def check_steamcmd():
         return False
 
 def install_steamcmd():
-    """Install SteamCMD (fallback action)"""
+    """Install SteamCMD using Python's built-in libraries"""
     if not os.path.exists(STEAMCMD_DIR):
         os.makedirs(STEAMCMD_DIR)
-    # Download and extract
+    
+    # Download SteamCMD
     logging.info("Installing SteamCMD...")
     try:
-        subprocess.run([
-            "wget", STEAMCMD_URL, 
-            "-P", STEAMCMD_DIR
-        ], check=True)
-        subprocess.run([
-            "tar", "-xvzf", os.path.join(STEAMCMD_DIR, "steamcmd_linux.tar.gz"),
-            "-C", STEAMCMD_DIR
-        ], check=True)
+        # Define file paths
+        tar_file_path = os.path.join(STEAMCMD_DIR, "steamcmd_linux.tar.gz")
+        
+        # Download the file
+        logging.info(f"Downloading SteamCMD from {STEAMCMD_URL}")
+        urllib.request.urlretrieve(STEAMCMD_URL, tar_file_path)
+        
+        # Extract the tar.gz file
+        logging.info("Extracting SteamCMD files...")
+        with tarfile.open(tar_file_path) as tar:
+            tar.extractall(path=STEAMCMD_DIR)
+        
+        # Make steamcmd.sh executable
+        steamcmd_sh = os.path.join(STEAMCMD_DIR, "steamcmd.sh")
+        if os.path.exists(steamcmd_sh):
+            os.chmod(steamcmd_sh, 0o755)  # Make executable
+            
         logging.info("SteamCMD installed successfully")
         return "SteamCMD installed successfully"
-    except subprocess.CalledProcessError as e:
+    except Exception as e:
         error_msg = f"Installation failed: {str(e)}"
         logging.error(error_msg)
         return error_msg
