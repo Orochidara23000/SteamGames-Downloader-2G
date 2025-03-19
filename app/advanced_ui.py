@@ -3,11 +3,7 @@ import time
 import os
 from steamcmd_operations import (
     list_installed_games, get_game_info, 
-    download_game, cancel_download, cleanup_failed_download
-)
-from file_sharing import (
-    list_shares, create_share, delete_share, 
-    generate_access_url, start_file_server
+    download_game, check_steamcmd
 )
 
 def create_advanced_ui():
@@ -79,8 +75,10 @@ def create_advanced_ui():
                 anonymous_login.change(toggle_password, anonymous_login, password)
                 
                 download_btn = gr.Button("Start Download")
+                refresh_downloads_btn = gr.Button("Refresh Status")
                 
                 with gr.Row():
+                    # Use Slider for progress display
                     gr.Markdown("Download Progress:")
                     download_progress = gr.Slider(minimum=0, maximum=100, value=0, step=1)
                     download_status = gr.Textbox(label="Status", value="Ready")
@@ -119,8 +117,10 @@ def create_advanced_ui():
                                     break
                                     
                                 # Update progress based on output
-                                # Implement actual progress parsing here
-                                active_downloads[download_id]["progress"] += 1
+                                # Simple increment for demonstration
+                                if active_downloads[download_id]["progress"] < 100:
+                                    active_downloads[download_id]["progress"] += 1
+                                
                                 if "Error" in line:
                                     active_downloads[download_id]["status"] = "error"
                                 elif "Success" in line:
@@ -154,57 +154,53 @@ def create_advanced_ui():
                         ])
                     return rows
                 
-                # Auto-refresh the downloads table
-                demo.load(update_downloads_table, None, active_downloads_table, every=2)
+                # Use manual refresh button instead of automatic refresh
+                refresh_downloads_btn.click(
+                    update_downloads_table,
+                    None,
+                    active_downloads_table
+                )
+                
+                # Add a search function
+                def search_app(app_id):
+                    try:
+                        game_info = get_game_info(app_id)
+                        return f"## {game_info.get('name', 'Unknown Game')}\nApp ID: {app_id}"
+                    except Exception as e:
+                        return f"Error searching for app ID {app_id}: {str(e)}"
+                
+                search_app_btn.click(
+                    search_app,
+                    inputs=app_id_input,
+                    outputs=app_info_display
+                )
             
             # Sharing Tab
             with gr.Tab("File Sharing"):
+                gr.Markdown("## File Sharing")
+                gr.Markdown("This feature allows you to share installed games via a local web server.")
+                
                 with gr.Row():
                     server_status = gr.Textbox(label="Server Status", value="Server not running")
                     start_server_btn = gr.Button("Start Server")
                     stop_server_btn = gr.Button("Stop Server")
                 
-                shares_table = gr.Dataframe(
-                    headers=["Share ID", "Game", "Created", "URL", "Actions"],
-                    label="Active Shares"
+                gr.Markdown("### Sharing is not implemented in this version")
+                gr.Markdown("To implement file sharing, you would need to:")
+                gr.Markdown("1. Create symbolic links to game files in a public directory")
+                gr.Markdown("2. Run a web server to serve those files")
+                gr.Markdown("3. Generate access URLs for each shared game")
+                
+                start_server_btn.click(
+                    lambda: "File sharing is not implemented in this version", 
+                    None, 
+                    server_status
                 )
                 
-                refresh_shares_btn = gr.Button("Refresh Shares")
-                
-                def refresh_shares():
-                    shares = list_shares()
-                    rows = []
-                    for share in shares:
-                        rows.append([
-                            share["id"],
-                            share["game_name"],
-                            time.strftime("%Y-%m-%d %H:%M", time.localtime(share["created_at"])),
-                            generate_access_url(share["id"]),
-                            "Delete"
-                        ])
-                    return rows
-                
-                refresh_shares_btn.click(refresh_shares, None, shares_table)
-                
-                def start_server():
-                    nonlocal file_server
-                    if file_server is None or file_server.poll() is not None:
-                        try:
-                            file_server = start_file_server()
-                            return "File server running on port 8000"
-                        except Exception as e:
-                            return f"Error starting server: {str(e)}"
-                    return "Server already running"
-                
-                start_server_btn.click(start_server, None, server_status)
-                
-                def stop_server():
-                    nonlocal file_server
-                    if file_server and file_server.poll() is None:
-                        file_server.terminate()
-                        return "Server stopped"
-                    return "No server running"
-                
-                stop_server_btn.click(stop_server, None, server_status)
+                stop_server_btn.click(
+                    lambda: "No server running", 
+                    None, 
+                    server_status
+                )
     
     return demo 
